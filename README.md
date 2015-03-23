@@ -19,7 +19,7 @@ I would have written this as Redmine Plugin, yet don't know anything about Ruby.
 # Requiremnts 
 
  - Redmine with REST API enabled
- - username and password with access to issues 
+ - user (username and password must be set in config) with access to issues
 
 # Installation
 
