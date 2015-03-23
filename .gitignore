@@ -1,5 +1,6 @@
 vendor
 bower_components
+!cache
 cache/*
 smarty/cache/*
 smarty/templates_c/*
