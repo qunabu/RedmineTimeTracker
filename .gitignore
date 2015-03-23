@@ -4,3 +4,4 @@ cache/*
 smarty/cache/*
 smarty/templates_c/*
 php/RedmineTimeTrackerConfig.php
+.idea
