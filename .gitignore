@@ -2,6 +2,7 @@ vendor
 bower_components
 !cache
 cache/*
+!cache/json_change_will_be_stored_here
 smarty/cache/*
 smarty/templates_c/*
 php/RedmineTimeTrackerConfig.php
