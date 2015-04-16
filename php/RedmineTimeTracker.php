@@ -82,14 +82,16 @@ class RedmineTimeTracker {
 									'project_name'=> $project_name,
 									'project_id'=> $project_id,
 									'issues' => array(),
-									'time' => 0			
+									'time' => 0,
+                  'error' => FALSE
 								);
 							}
 							if (!isset($data[$user_id]['projects'][$project_id]['issues'][$issue_id])) {
 								$data[$user_id]['projects'][$project_id]['issues'][$issue_id] = array(
 									'data'=> $issue,
 									'time'=> 0,
-									'changes' => array()			
+									'changes' => array(),
+                  'error' => FALSE
 								);
 							}
 							$data[$user_id]['projects'][$project_id]['issues'][$issue_id]['data'] = $issue;
@@ -100,6 +102,12 @@ class RedmineTimeTracker {
 							$data[$user_id]['time'] += $time;
 							$data[$user_id]['projects'][$project_id]['time'] += $time;
 							$data[$user_id]['projects'][$project_id]['issues'][$issue_id]['time'] += $time;;
+
+              if ($change['error']) {
+                $data[$user_id]['projects'][$project_id]['issues'][$issue_id]['error'] = TRUE;
+                $data[$user_id]['projects'][$project_id]['error'] = TRUE;
+              }
+
 
 							//$data[$user_id]['projects'][$project_id]['changes'][] = $change;
 						}
@@ -198,13 +206,14 @@ class RedmineTimeTracker {
                 $user = $journals[$i - 1]->user->name;
                 $diff_time = ($this_time - $prev_time) / 3600;
                 $time = $time + $diff_time;
+                $error = date('d', $prev_time) != date('d', $this_time) ? "More then one day!" : FALSE;
                 $changes[] = array(
                   'start_time' => date('m-d H:i', $prev_time),
                   'end_time' => date('m-d H:i', $this_time),
                   'user' => $journals[$i - 1]->user->name,
                   'user_id' => $journals[$i - 1]->user->id,
                   'time' => $diff_time,
-                  'error' => date('d', $prev_time) != date('d', $this_time) ? "More then one day!" : FALSE
+                  'error' => $error
                 );
                 $this->users[$journals[$i - 1]->user->id] = $journals[$i - 1]->user->name;
               }
