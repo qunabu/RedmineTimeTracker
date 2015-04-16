@@ -14,7 +14,9 @@ class RedmineTimeTracker {
 	private $projects = array();
 	private $users = array();
 	private $start_date;
+	private $start_date_time;
 	private $end_date;
+	private $end_date_time;
 
 	public function __construct() {
 		if (!isset(self::$username)) {
@@ -42,6 +44,9 @@ class RedmineTimeTracker {
 			$this->end_date = date('Y-m-d', strtotime('last day of previous month'));
 		}
 
+    $this->start_date_time = strtotime($this->start_date);
+    $this->end_date_time = strtotime($this->end_date);
+
 		$this->initSmarty();		
 	}
 
@@ -59,7 +64,6 @@ class RedmineTimeTracker {
 			foreach ($this->users as $user_id => $username) {
 				foreach($this->projects as $project_id => $project_name) {
 					foreach($issue['changes'] as $change) {
-						//trace($issue);
 						if (
 							$change['user_id'] == $user_id 
 							&& $issue['project_id'] == $project_id
@@ -76,6 +80,7 @@ class RedmineTimeTracker {
 							if (!isset($data[$user_id]['projects'][$project_id])) {
 								$data[$user_id]['projects'][$project_id] = array(
 									'project_name'=> $project_name,
+									'project_id'=> $project_id,
 									'issues' => array(),
 									'time' => 0			
 								);
@@ -102,7 +107,7 @@ class RedmineTimeTracker {
 				}
 			}
 		}
-		//trace($data);
+
 		return $data;
 	}
 
@@ -145,11 +150,11 @@ class RedmineTimeTracker {
 		//$end_date = '2015-03-28';
 		if ($start_date==null) { $start_date = $this->start_date; }
 		if ($end_date==null) { $end_date = $this->end_date; }
-		$url = 'issues.json?updated_on=%3E%3C'.$start_date.'|'.$end_date.'&limit=1000';
+		$url = 'issues.json?updated_on=%3E%3C'.$start_date.'|'.$end_date.'&limit=1000&status_id=*';
 		$data = $this->getJSONFile($url);
 		foreach ($data->issues as $issue) {
 			$this->projects[$issue->project->id] = $issue->project->name;
-			$issue_data = $this->getJSONFile('/issues/'.$issue->id.'.json?include=journals');			
+			$issue_data = $this->getJSONFile('/issues/'.$issue->id.'.json?include=journals');
 			$time_data = $this->onIssueTime($issue_data);
 			$this->issues[$issue->id] = array(
 				'data'=>$issue_data,
@@ -164,6 +169,7 @@ class RedmineTimeTracker {
 				'link'=> self::$redmine_url.'issues/'.$issue->id
 			);
 		}
+
 	}
 
 	private function onIssueTime($data) {
@@ -182,18 +188,26 @@ class RedmineTimeTracker {
 						if ($i!=0) {
 							/** TODO check against start and end date */
 							$this_time = strtotime($journals[$i]->created_on);
-							$prev_time = strtotime($journals[$i-1]->created_on);
-							$user = $journals[$i-1]->user->name;	
-							$diff_time = ($this_time - $prev_time)/3600;
-							$time = $time + $diff_time;
-							$changes[] = array(
-								'start_time'=>date('m-d H:i',$prev_time),
-								'end_time'=>date('m-d H:i',$this_time),
-								'user'=>$journals[$i-1]->user->name,
-								'user_id'=>$journals[$i-1]->user->id,
-								'time'=>$diff_time
-							);
-							$this->users[$journals[$i-1]->user->id] = $journals[$i-1]->user->name;
+              $prev_time = strtotime($journals[$i - 1]->created_on);
+
+              if (TRUE
+              &&   $this_time >= $this->start_date_time && $this_time <= $this->end_date_time
+              && $prev_time >= $this->start_date_time && $prev_time <= $this->end_date_time
+              ) {
+
+                $user = $journals[$i - 1]->user->name;
+                $diff_time = ($this_time - $prev_time) / 3600;
+                $time = $time + $diff_time;
+                $changes[] = array(
+                  'start_time' => date('m-d H:i', $prev_time),
+                  'end_time' => date('m-d H:i', $this_time),
+                  'user' => $journals[$i - 1]->user->name,
+                  'user_id' => $journals[$i - 1]->user->id,
+                  'time' => $diff_time,
+                  'error' => date('d', $prev_time) != date('d', $this_time) ? "More then one day!" : FALSE
+                );
+                $this->users[$journals[$i - 1]->user->id] = $journals[$i - 1]->user->name;
+              }
 						} else {
 							/** TODO check against start and end date */
 							//check agains created date

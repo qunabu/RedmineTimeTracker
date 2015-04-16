@@ -1,21 +1,21 @@
-{foreach from=$issues_by_users_projects item=issueUP}
+{foreach from=$issues_by_users_projects item=issueUP name=projects}
 
-<div role="tabpanel" class="tab-pane active" id="user{$issueUP.user_id}">
+<div role="tabpanel" class="tab-pane {if $smarty.foreach.projects.first}active{/if}" id="user{$issueUP.user_id}">
 
-  {foreach from=$issueUP.projects item=project}
+  {foreach from=$issueUP.projects item=project key=project_id}
 
-    <div class="page-header">
-      <h2>{$project.project_name} <small>(time:{$project.time|string_format:"%.2f"}h)</small></h2>
-    </div>  
+  <div class="page-header">
+    <h2>{$project.project_name} <small>(time:{$project.time|string_format:"%.2f"}h)</small></h2>
+  </div>
 
   <div class="well">
-     <table id="issues" class="table table-bordered">
+     <table id="issues{$issueUP.user_id}_{$project.project_id}" class="table table-striped">
       <thead>
         <tr>
           <th>Id</th>
           <th>Name</th>
           <th>Start Date</th>
-          <th>Status</th>
+          <th>Current Status</th>
           <th>Changes</th>
           <th>Time (h)</th>
         </tr>
@@ -32,7 +32,7 @@
               {foreach from=$issue.changes item=change}
                 <li>
                   <small>
-                    <strong>{$change.time|string_format:"%.2f"}h</strong> {$change.start_time} - {$change.end_time} 
+                    <strong>{$change.time|string_format:"%.2f"}h</strong> {$change.start_time} - {$change.end_time} {if $change.error}<span class="label label-danger">{$change.error}</span>{/if}
                   </small>
                 </li>
               {/foreach} 
@@ -44,7 +44,7 @@
       </tbody>
     </table>
   </div>
-  {/foreach}  
+  {/foreach}
 
 </div>
 
