@@ -34,9 +34,9 @@ class RedmineTimeTracker {
 		}
 		$this->context = stream_context_create(array(
 		    'http' => array(
-		        //'header'  => "Authorization: Basic " . base64_encode(self::$username.":".self::$password)
-		        'header'  => "X-Redmine-API-Key: " . self::$api_key ."\r\n".
-		        "X-Redmine-Switch-User: " . self::$username
+		        'header'  => "Authorization: Basic " . base64_encode(self::$username.":".self::$password)
+		        //'header'  => "X-Redmine-API-Key: " . self::$api_key ."\r\n".
+		        //"X-Redmine-Switch-User: " . self::$username
 		    )
 		));
 		if (isset($_GET['start_date']) && isset($_GET['end_date'])) {
