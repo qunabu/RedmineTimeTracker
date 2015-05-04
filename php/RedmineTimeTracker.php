@@ -6,6 +6,7 @@ class RedmineTimeTracker {
 	public static $username;
 	public static $password;
 	public static $redmine_url;
+	public static $api_key;
 	public static $tracked_status;
 	private $context;
 	private $smarty;
@@ -33,7 +34,9 @@ class RedmineTimeTracker {
 		}
 		$this->context = stream_context_create(array(
 		    'http' => array(
-		        'header'  => "Authorization: Basic " . base64_encode(self::$username.":".self::$password)
+		        //'header'  => "Authorization: Basic " . base64_encode(self::$username.":".self::$password)
+		        'header'  => "X-Redmine-API-Key: " . self::$api_key ."\r\n".
+		        "X-Redmine-Switch-User: " . self::$username
 		    )
 		));
 		if (isset($_GET['start_date']) && isset($_GET['end_date'])) {
@@ -130,9 +133,9 @@ class RedmineTimeTracker {
 	}
 
 
-	private function getJSONFile($url) {
+	private function getJSONFile($url, $force_download = false) {
 		$cached_file = 'cache/'.str_replace(array('/','?','&','=','%','.','|'),'_', $url);
-		if (is_file($cached_file))	{
+		if (is_file($cached_file) && !$force_download)	{
 			$data = file_get_contents($cached_file);
 			if ($data=='') {
 				//empty file;
@@ -160,25 +163,40 @@ class RedmineTimeTracker {
 		if ($end_date==null) { $end_date = $this->end_date; }
 		$url = 'issues.json?updated_on=%3E%3C'.$start_date.'|'.$end_date.'&limit=1000&status_id=*';
 		$data = $this->getJSONFile($url);
-		foreach ($data->issues as $issue) {
-			$this->projects[$issue->project->id] = $issue->project->name;
-			$issue_data = $this->getJSONFile('/issues/'.$issue->id.'.json?include=journals');
-			$time_data = $this->onIssueTime($issue_data);
-			$this->issues[$issue->id] = array(
-				'data'=>$issue_data,
-				'id'=>$issue->id,
-				'subject'=>$issue->subject,
-				'status'=>$issue->status->name,
-				'project'=>$issue->project->name,
-				'project_id'=>$issue->project->id,
-				'start_date'=>$issue->start_date,
-				'time' => $time_data['time'],
-				'changes' => $time_data['changes'],
-				'link'=> self::$redmine_url.'issues/'.$issue->id
-			);
-		}
+    $total = $data->total_count;
+    $l = ceil($total/100);
+    //var_dump($total);
+    $this->parseIssues($data->issues);
+    if ($l>1) {
+      for ($i = 1; $i < $l ; $i++) {
+        $url = 'issues.json?updated_on=%3E%3C'.$start_date.'|'.$end_date.'&limit=1000&status_id=*&offset='.($i*100);
+        $data = $this->getJSONFile($url);
+        $this->parseIssues($data->issues);
+      }
+    }
 
 	}
+
+  private function parseIssues($issues) {
+    foreach ($issues as $issue) {
+      $this->projects[$issue->project->id] = $issue->project->name;
+      $issue_data = $this->getJSONFile('/issues/'.$issue->id.'.json?include=journals');
+      $time_data = $this->onIssueTime($issue_data);
+      $this->issues[$issue->id] = array(
+        'data'=>$issue_data,
+        'id'=>$issue->id,
+        'subject'=>$issue->subject,
+        'status'=>$issue->status->name,
+        'project'=>$issue->project->name,
+        'project_id'=>$issue->project->id,
+        'start_date'=>$issue->start_date,
+        'time' => $time_data['time'],
+        'changes' => $time_data['changes'],
+        'link'=> self::$redmine_url.'issues/'.$issue->id
+      );
+    }
+  }
+
 
 	private function onIssueTime($data) {
 		$journals = $data->issue->journals;
